@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "string.h"
@@ -48,7 +47,9 @@ RTC_HandleTypeDef hrtc;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-void printmsg(char *format,...);
+//void printmsg(char *format,...);
+uint8_t transmitMessageViaUartFLAG = 0;
+char msg[10] = "Hello\r\n";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,6 +57,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_RTC_Init(void);
+void printDateAndTime(RTC_HandleTypeDef *handleRTC);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -63,15 +65,15 @@ static void MX_RTC_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void printmsg(char *format,...)
-{
-	char str[80];
-
-	va_list args;
-	va_start(args, format);
-	vsprintf(str, format, args);
-	HAL_UART_Transmit(&huart2, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
-}
+//void printmsg(char *format,...)
+//{
+//	char str[80];
+//
+//	va_list args;
+//	va_start(args, format);
+//	vsprintf(str, format, args);
+//	HAL_UART_Transmit(&huart2, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
+//}
 
 /* USER CODE END 0 */
 
@@ -117,28 +119,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  if(transmitMessageViaUartFLAG == 1)
+	  {
+		  printDateAndTime(&hrtc);
+		  transmitMessageViaUartFLAG = 0;
+	  }
   }
   /* USER CODE END 3 */
-}
-
-void RTC_CalendarConfig()
-{
-	RTC_TimeTypeDef timeDefStruct = {0};
-	RTC_DateTypeDef dateDefStruct = {0};
-
-	timeDefStruct.Hours = 21;
-	timeDefStruct.Minutes = 45;
-	timeDefStruct.Seconds = 30;
-	timeDefStruct.TimeFormat = RTC_HOURFORMAT12_PM;
-
-	dateDefStruct.Date = 5;
-	dateDefStruct.Year = 24;
-	dateDefStruct.Month = RTC_MONTH_SEPTEMBER;
-	dateDefStruct.WeekDay = RTC_WEEKDAY_THURSDAY;
-
-	HAL_RTC_SetTime(&hrtc, &timeDefStruct, RTC_FORMAT_BIN);
-	HAL_RTC_SetDate(&hrtc, &dateDefStruct, RTC_FORMAT_BIN);
-
 }
 
 /**
@@ -159,16 +147,10 @@ void SystemClock_Config(void)
   * in the RCC_OscInitTypeDef structure.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_OFF;
-  RCC_OscInitStruct.LSEState = RCC_LSE_OFF;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 64;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -178,8 +160,8 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV8;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
@@ -212,14 +194,28 @@ static void MX_RTC_Init(void)
   hrtc.Init.AsynchPrediv = 127;
   hrtc.Init.SynchPrediv = 255;
   hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_LOW;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
   hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
   if (HAL_RTC_Init(&hrtc) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN RTC_Init 2 */
+	RTC_TimeTypeDef rtcTime = {0};
+	RTC_DateTypeDef rtcDate = {0};
 
+	rtcTime.Hours = 16;
+	rtcTime.Minutes = 54;
+	rtcTime.Seconds = 30;
+	rtcTime.TimeFormat = RTC_HOURFORMAT12_PM;
+
+	rtcDate.Date = 6;
+	rtcDate.Month = RTC_MONTH_SEPTEMBER;
+	rtcDate.WeekDay = RTC_WEEKDAY_FRIDAY;
+	rtcDate.Year = 24;
+
+	HAL_RTC_SetTime(&hrtc, &rtcTime, RTC_FORMAT_BIN);
+	HAL_RTC_SetDate(&hrtc, &rtcDate, RTC_FORMAT_BIN);
   /* USER CODE END RTC_Init 2 */
 
 }
@@ -279,8 +275,8 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD2_Pin */
@@ -289,6 +285,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -300,25 +300,43 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
  void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	// RTC_TimeTypeDef RTC_TimeRead;
+	// RTC_DateTypeDef RTC_DateRead;
+
+
+	// HAL_RTC_GetTime(&hrtc, &RTC_TimeRead, RTC_FORMAT_BIN);
+	// HAL_RTC_GetDate(&hrtc, &RTC_DateRead, RTC_FORMAT_BIN);
+
+	 if(transmitMessageViaUartFLAG == 0)
+		 {
+		 transmitMessageViaUartFLAG = 1;
+		 HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		 }
+
+//	 printmsg("Current Time is: %02d:%02d:%02d\r\n", RTC_TimeRead.Hours,
+//			 RTC_TimeRead.Minutes, RTC_TimeRead.Seconds);
+//	 printmsg("Current Date is: %02d-%02d-%02d\r\n", RTC_DateRead.WeekDay,
+//			 RTC_DateRead.Month, RTC_DateRead.Year);
+
+	 //sprintf(msg,"Current Time is: %02d:%02d:%02d\r\n", RTC_TimeRead.Hours,
+		//	 RTC_TimeRead.Minutes, RTC_TimeRead.Seconds);
+
+
+
+}
+
+void printDateAndTime(RTC_HandleTypeDef *handleRTC)
+{
 	 RTC_TimeTypeDef RTC_TimeRead;
 	 RTC_DateTypeDef RTC_DateRead;
-	 char msg[50];
 
-	 HAL_RTC_GetTime(&hrtc, &RTC_TimeRead, RTC_FORMAT_BIN);
-	 HAL_RTC_GetDate(&hrtc, &RTC_DateRead, RTC_FORMAT_BIN);
-
-	 printmsg("Current Time is: %02d:%02d:%02d\r\n", RTC_TimeRead.Hours,
-			 RTC_TimeRead.Minutes, RTC_TimeRead.Seconds);
-	 printmsg("Current Date is: %02d-%02d-%02d\r\n", RTC_DateRead.WeekDay,
-			 RTC_DateRead.Month, RTC_DateRead.Year);
-
-	 sprintf(msg,"Current Time is: %02d:%02d:%02d\r\n", RTC_TimeRead.Hours,
+	 HAL_RTC_GetTime(handleRTC, &RTC_TimeRead, RTC_FORMAT_BIN);
+	 HAL_RTC_GetDate(handleRTC, &RTC_DateRead, RTC_FORMAT_BIN);
+	char buffer[50];
+	 sprintf(buffer,"Current Time is: %02d:%02d:%02d\r\n", RTC_TimeRead.Hours,
 			 RTC_TimeRead.Minutes, RTC_TimeRead.Seconds);
 
-	 HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
-
-
-
+	 HAL_UART_Transmit(&huart2, (uint8_t* )buffer, strlen(buffer), HAL_MAX_DELAY);
 }
 /* USER CODE END 4 */
 
